@@ -37,7 +37,7 @@ public class Project3 {
                 case "load":
                 case "print":
                 case "extract":
-                    System.err.println("Error: command not implemented yet (Stage 2)");
+                    System.err.println("Error: command not implemented yet (Stage 3)");
                     break;
 
                 default:
@@ -54,85 +54,3 @@ public class Project3 {
         System.out.println("Usage:");
         System.out.println("  java Project3 create file.idx");
         System.out.println("  java Project3 insert file.idx <key> <value>");
-        System.out.println("  java Project3 search file.idx <key>");
-        System.out.println("  java Project3 load file.idx input.csv");
-        System.out.println("  java Project3 print file.idx");
-        System.out.println("  java Project3 extract file.idx output.csv");
-    }
-
-    private static void create(String filename) throws IOException {
-        Path p = Paths.get(filename);
-        if (Files.exists(p)) {
-            System.err.println("Error: file already exists");
-            return;
-        }
-
-        try (RandomAccessFile raf = new RandomAccessFile(filename, "rw")) {
-            ByteBuffer buf = ByteBuffer.allocate(BLOCK_SIZE);
-            buf.order(ByteOrder.BIG_ENDIAN);
-
-            buf.put(MAGIC);
-            buf.putLong(NO_BLOCK);
-            buf.putLong(1L);
-
-            buf.position(BLOCK_SIZE);
-            buf.flip();
-
-            raf.getChannel().write(buf, 0);
-        }
-
-        System.out.println("Created index file: " + filename);
-    }
-
-    static class BTree implements Closeable {
-
-        private final RandomAccessFile raf;
-        private final FileChannel chan;
-
-        long rootBlockId;
-        long nextBlockId;
-
-        BTree(String filename) throws IOException {
-            this.raf = new RandomAccessFile(filename, "rw");
-            this.chan = raf.getChannel();
-            readHeader();
-        }
-
-        private void readHeader() throws IOException {
-            ByteBuffer buf = ByteBuffer.allocate(BLOCK_SIZE);
-            buf.order(ByteOrder.BIG_ENDIAN);
-            chan.read(buf, 0);
-            buf.flip();
-
-            byte[] magicBuf = new byte[8];
-            buf.get(magicBuf);
-            if (!Arrays.equals(magicBuf, MAGIC)) {
-                throw new IOException("Not a valid index file (magic mismatch)");
-            }
-
-            rootBlockId = buf.getLong();
-            nextBlockId = buf.getLong();
-        }
-
-        private void writeHeader() throws IOException {
-            ByteBuffer buf = ByteBuffer.allocate(BLOCK_SIZE);
-            buf.order(ByteOrder.BIG_ENDIAN);
-
-            buf.put(MAGIC);
-            buf.putLong(rootBlockId);
-            buf.putLong(nextBlockId);
-
-            buf.position(BLOCK_SIZE);
-            buf.flip();
-
-            chan.write(buf, 0);
-        }
-
-        @Override
-        public void close() throws IOException {
-            writeHeader();
-            chan.close();
-            raf.close();
-        }
-    }
-}
